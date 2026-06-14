@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.conda-env/
+data/raw/
+*.xlsx
+.DS_Store
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/

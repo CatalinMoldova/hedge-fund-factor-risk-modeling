@@ -1,0 +1,32 @@
+data:
+  fama_path: data/sample/sample_fama_factors.csv
+  fund_returns_path: data/sample/sample_fund_returns.csv
+  date_col: date
+
+factors:
+  factor_cols:
+    - Mkt-RF
+    - SMB
+    - HML
+    - RMW
+    - CMA
+  target_col: Fund
+
+split:
+  train_end: "2018-12"
+  test_start: "2019-01"
+
+regression:
+  ridge_alpha: 1.0
+  lasso_alpha: 0.1
+  elastic_net_alpha: 1.0
+  elastic_net_l1_ratio: 0.5
+  cv_splits: 5
+
+rolling:
+  window_months: 36
+  min_periods: 24
+
+output:
+  results_dir: results
+  assets_dir: assets
