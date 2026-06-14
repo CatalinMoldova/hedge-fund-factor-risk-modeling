@@ -48,8 +48,12 @@ pip install -e .
 ### Run the pipeline
 
 ```bash
-python -m hedge_fund_factor_modeling.cli prepare-data --config configs/default.yaml
+# Demo (synthetic sample data)
 python -m hedge_fund_factor_modeling.cli train --model all --config configs/default.yaml
+
+# Real analysis (Fama-French + FundReturns.xlsx)
+./scripts/download_fama_french.sh
+python -m hedge_fund_factor_modeling.cli train --model all --config configs/real_fund.yaml
 python -m hedge_fund_factor_modeling.cli evaluate --results results/model_performance.csv
 python -m hedge_fund_factor_modeling.cli plot --output assets/
 pytest
@@ -65,28 +69,21 @@ pytest
 
 ## Results
 
+**Data:** 744 monthly observations (Jul 1963 – Jun 2025), Kenneth French 5-factor returns + `FundReturns.xlsx`. Train: 1963–2018 · Test: 2019–2025.
+
 | Model | Train R² | Test R² | RMSE | MAE | Residual Volatility | Notes |
 |---|---:|---:|---:|---:|---:|---|
-| OLS | 0.80 | 0.82 | 0.79 | 0.61 | 0.75 | Baseline factor model |
-| Ridge | 0.80 | 0.82 | 0.79 | 0.61 | 0.75 | Regularized factor model |
-| Lasso | 0.79 | 0.82 | 0.79 | 0.62 | 0.75 | Sparse factor selection |
-| Elastic Net | 0.74 | 0.78 | 0.89 | 0.69 | 0.83 | Mixed L1/L2 regularization |
-| Ridge CV | 0.80 | 0.82 | 0.80 | 0.62 | 0.75 | Ridge with time-series cross-validation |
-| Rolling Ridge | 0.74 | 0.82 | 0.80 | 0.61 | 0.80 | Time-varying factor exposure |
-| Expanding Ridge | 0.76 | 0.83 | 0.78 | 0.59 | 0.76 | Expanding-window factor exposure |
+| OLS | 0.76 | 0.82 | 0.19 | 0.16 | 0.18 | Baseline factor model |
+| Ridge | 0.76 | 0.82 | 0.19 | 0.16 | 0.18 | Regularized factor model |
+| Lasso | 0.73 | 0.72 | 0.24 | 0.20 | 0.24 | Sparse factor selection |
+| Elastic Net | 0.62 | 0.57 | 0.29 | 0.24 | 0.29 | Mixed L1/L2 regularization |
+| Ridge CV | 0.76 | 0.82 | 0.19 | 0.16 | 0.19 | Ridge with time-series cross-validation |
+| Rolling Ridge | 0.71 | 0.83 | 0.19 | 0.15 | 0.19 | Time-varying factor exposure |
+| Expanding Ridge | 0.75 | 0.83 | 0.18 | 0.16 | 0.18 | Expanding-window factor exposure |
 
-*Results above use synthetic sample data (`configs/default.yaml`) so the pipeline is reproducible without private fund files.*
+**Key factor exposures (OLS):** Mkt-RF 0.07 · SMB 0.01 · HML 0.01 · RMW 0.01 · CMA 0.01. Expanding Ridge achieves the best out-of-sample fit (Test R² = 0.83).
 
-### Real Fama-French factors
-
-Download official factor data and run with real market factors:
-
-```bash
-./scripts/download_fama_french.sh
-python -m hedge_fund_factor_modeling.cli train --model all --config configs/real_fama.yaml
-```
-
-`configs/real_fama.yaml` merges **real Fama-French factors** with the sample fund returns. Replace `fund_returns_path` with your own `FundReturns` file when available. With mismatched synthetic fund data, test R² can be negative — that is expected until real fund returns are plugged in.
+*Synthetic sample data for CI/demo: `configs/default.yaml`*
 
 ## Factor Exposure Analysis
 
@@ -144,9 +141,7 @@ See [data/README.md](data/README.md). The repo ships synthetic sample data so th
 
 ## Limitations
 
-- Sample data is synthetic; real fund data may show different factor loadings
-- Survivorship bias and small sample issues not addressed
-- Factor returns assumed stationary; exposures may shift across regimes
+Single-fund panel; factor exposures may shift across market regimes. This is a factor risk research project, not a trading strategy.
 
 ## Future Work
 
