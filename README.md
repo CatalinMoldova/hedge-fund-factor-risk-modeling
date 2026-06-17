@@ -1,18 +1,20 @@
 # Hedge Fund Factor Risk Modeling
 
-> A quantitative finance research project modeling hedge fund excess returns using Fama-French factors, regularized regression, rolling factor exposures, and out-of-sample risk attribution.
+> A quantitative finance project that models a **simulated** monthly fund-return series against the **real** Fama-French five factors, using regularized regression, rolling factor exposures, and out-of-sample validation.
 
 ## Overview
 
-This project estimates hedge fund exposure to systematic risk factors (Mkt-RF, SMB, HML, RMW, CMA), compares regularized regression models, and evaluates out-of-sample stability with time-based validation. It is **not** a trading strategy — it demonstrates the research process behind quantitative finance.
+This project demonstrates the research workflow behind factor risk modeling: estimating a fund's exposure to systematic risk factors (Mkt-RF, SMB, HML, RMW, CMA), comparing regularized regression models, and evaluating out-of-sample stability with time-based validation.
+
+**About the data:** the fund return series used here (`FundReturns.xlsx`) is a **simulated** monthly series spanning the Fama-French history; it is **not** a real fund. The five factors are real (Kenneth French Data Library). The purpose is to demonstrate the modeling and validation *process* on a shareable dataset, not to analyze any real manager's performance. This is **not** a trading strategy.
 
 ## Research Question
 
-Can hedge fund excess returns be explained by Fama-French factors, and does Ridge regression improve out-of-sample stability compared with OLS?
+Given a fund return series and the Fama-French five factors, how much of the return variation is explained by systematic factor exposure, and does regularization (Ridge / Lasso / Elastic Net) improve out-of-sample stability relative to OLS?
 
 ## Why This Matters
 
-Hedge fund returns often reflect exposure to common risk factors rather than pure manager alpha. This project estimates those exposures, evaluates model stability, and separates factor-driven returns from residual performance.
+Fund returns often reflect exposure to common risk factors rather than pure manager skill. Estimating those exposures, validating them out of sample, and inspecting the residuals is the standard first step in separating factor-driven returns from any residual ("alpha") component. Here that workflow is applied to a simulated series so the full pipeline can be run and shared publicly.
 
 ## Quick Start
 
@@ -48,16 +50,18 @@ pip install -e .
 ### Run the pipeline
 
 ```bash
-# Demo (synthetic sample data)
+# Demo (bundled synthetic sample data)
 python -m hedge_fund_factor_modeling.cli train --model all --config configs/default.yaml
 
-# Real analysis (Fama-French + FundReturns.xlsx)
+# Analysis on the simulated fund series (real Fama-French factors + FundReturns.xlsx)
 ./scripts/download_fama_french.sh
 python -m hedge_fund_factor_modeling.cli train --model all --config configs/real_fund.yaml
 python -m hedge_fund_factor_modeling.cli evaluate --results results/model_performance.csv
 python -m hedge_fund_factor_modeling.cli plot --output assets/
 pytest
 ```
+
+<!-- TODO: confirm the config filename. The data/README previously referred to configs/real_fama.yaml while this file says configs/real_fund.yaml. Make both READMEs match the file that actually exists in configs/. -->
 
 ## Methods
 
@@ -69,21 +73,25 @@ pytest
 
 ## Results
 
-**Data:** 744 monthly observations (Jul 1963 – Jun 2025), Kenneth French 5-factor returns + `FundReturns.xlsx`. Train: 1963–2018 · Test: 2019–2025.
+**Data:** 744 monthly observations (Jul 1963 – Jun 2025): real Kenneth French 5-factor returns + the simulated `FundReturns.xlsx` series. Train: 1963–2018 · Test: 2019–2025.
 
-| Model | Train R² | Test R² | RMSE | MAE | Residual Volatility | Notes |
-|---|---:|---:|---:|---:|---:|---|
-| OLS | 0.76 | 0.82 | 0.19 | 0.16 | 0.18 | Baseline factor model |
-| Ridge | 0.76 | 0.82 | 0.19 | 0.16 | 0.18 | Regularized factor model |
-| Lasso | 0.73 | 0.72 | 0.24 | 0.20 | 0.24 | Sparse factor selection |
-| Elastic Net | 0.62 | 0.57 | 0.29 | 0.24 | 0.29 | Mixed L1/L2 regularization |
-| Ridge CV | 0.76 | 0.82 | 0.19 | 0.16 | 0.19 | Ridge with time-series cross-validation |
-| Rolling Ridge | 0.71 | 0.83 | 0.19 | 0.15 | 0.19 | Time-varying factor exposure |
-| Expanding Ridge | 0.75 | 0.83 | 0.18 | 0.16 | 0.18 | Expanding-window factor exposure |
+<!-- TODO: confirm every number below was generated from the FundReturns.xlsx run (configs/real_fund.yaml), NOT from the synthetic CI demo (configs/default.yaml). -->
 
-**Key factor exposures (OLS):** Mkt-RF 0.07 · SMB 0.01 · HML 0.01 · RMW 0.01 · CMA 0.01. Expanding Ridge achieves the best out-of-sample fit (Test R² = 0.83).
+| Model           | Train R² | Test R² | RMSE | MAE  | Residual Volatility | Notes                                   |
+| --------------- | -------- | ------- | ---- | ---- | ------------------- | --------------------------------------- |
+| OLS             | 0.76     | 0.82    | 0.19 | 0.16 | 0.18                | Baseline factor model                   |
+| Ridge           | 0.76     | 0.82    | 0.19 | 0.16 | 0.18                | Regularized factor model                |
+| Lasso           | 0.73     | 0.72    | 0.24 | 0.20 | 0.24                | Sparse factor selection                 |
+| Elastic Net     | 0.62     | 0.57    | 0.29 | 0.24 | 0.29                | Mixed L1/L2 regularization              |
+| Ridge CV        | 0.76     | 0.82    | 0.19 | 0.16 | 0.19                | Ridge with time-series cross-validation |
+| Rolling Ridge   | 0.71     | 0.83    | 0.19 | 0.15 | 0.19                | Time-varying factor exposure            |
+| Expanding Ridge | 0.75     | 0.83    | 0.18 | 0.16 | 0.18                | Expanding-window factor exposure        |
 
-*Synthetic sample data for CI/demo: `configs/default.yaml`*
+**Key takeaway:** the denser models (OLS, Ridge, and the rolling/expanding Ridge variants) hold their out-of-sample fit, while the sparser Lasso and Elastic Net degrade — evidence that the smaller factor loadings carry signal rather than noise worth shrinking away. Expanding Ridge achieves the best out-of-sample fit (Test R² = 0.83).
+
+**Factor exposures (OLS):** `[ regenerate and paste the coefficients from the FundReturns.xlsx OLS run here ]`
+
+<!-- TODO: the previously published exposures (Mkt-RF 0.07, SMB/HML/RMW/CMA 0.01) cannot coexist with a Test R² of ~0.82 given the series' volatility — coefficients that small would explain almost no variance. Re-pull the coefficients and R² from the SAME regression and make sure they reconcile before publishing. -->
 
 ## Factor Exposure Analysis
 
@@ -95,12 +103,12 @@ Estimated betas show how each model loads on the Fama-French five factors. Ridge
 
 ![Rolling factor exposures](assets/rolling_beta_chart.png)
 
-Rolling Ridge regression reveals how factor exposures evolve over time — a key step before attributing performance or building signals.
+Rolling Ridge regression shows how factor exposures evolve over time — a key step before attributing performance or building signals.
 
 ## Model Fit and Diagnostics
 
 | Chart | Description |
-|---|---|
+| --- | --- |
 | ![Predicted vs actual](assets/predicted_vs_actual_returns.png) | Out-of-sample predicted vs actual fund returns |
 | ![Regularization path](assets/regularization_path.png) | How Ridge coefficients shrink as λ increases |
 | ![Residuals](assets/residuals_plot.png) | Unexplained returns after factor attribution |
@@ -121,7 +129,7 @@ This project is not a trading strategy. It focuses on the research habits needed
 hedge-fund-factor-risk-modeling/
 ├── src/hedge_fund_factor_modeling/   # Core package
 ├── notebooks/                         # Theory + demo notebook
-├── configs/default.yaml              # Experiment configuration
+├── configs/default.yaml               # Experiment configuration
 ├── data/sample/                       # Synthetic data for end-to-end runs
 ├── results/                           # Model outputs (CSV)
 ├── assets/                            # Diagnostic plots
@@ -137,15 +145,15 @@ hedge-fund-factor-risk-modeling/
 
 ## Data
 
-See [data/README.md](data/README.md). The repo ships synthetic sample data so the full pipeline runs without private datasets. Download real Fama-French factors from the [Kenneth French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html).
+See [data/README.md](data/README.md). The repo ships synthetic sample data so the full pipeline runs without any external files. The `FundReturns.xlsx` series used for the main results is a simulated course dataset and is not redistributed here. Download the real Fama-French factors from the [Kenneth French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html).
 
 ## Limitations
 
-Single-fund panel; factor exposures may shift across market regimes. This is a factor risk research project, not a trading strategy.
+Single-fund series, and a **simulated** one — results illustrate the methodology rather than describe a real fund. Factor exposures may shift across market regimes. This is a factor-risk research project, not a trading strategy.
 
 ## Future Work
 
-- Add more funds and multi-fund panels
+- Add real, multi-fund panels
 - Regime detection and nonlinear models
 - Bayesian shrinkage for exposure estimation
 - Transaction-cost-aware strategy extension (separate from this research repo)
